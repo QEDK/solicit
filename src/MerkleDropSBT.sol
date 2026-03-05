@@ -11,7 +11,7 @@ import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Own
 
 /// @title MerkleDropSBT
 /// @author QEDK (@qedk)
-/// @notice A soulbound ERC-721 token distributed via Merkle tree allowlists 
+/// @notice A soulbound ERC-721 token distributed via Merkle tree allowlists
 contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     using Strings for uint256;
 
@@ -59,7 +59,7 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Constructor for the SBT contract
     /// @param _owner The initial owner address
-    constructor(address _owner) Ownable(_owner) ERC721("MerkleDropSBT", "MDSBT") EIP712 ("MerkleDropSBT", "1") {}
+    constructor(address _owner) Ownable(_owner) ERC721("MerkleDropSBT", "MDSBT") EIP712("MerkleDropSBT", "1") {}
 
     /// @notice Adds a new Merkle root for a distribution tranche
     /// @dev Increments {trancheId} after assignment, so tranche IDs are sequential starting from 0
@@ -80,18 +80,10 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     /// @param claim     The claim struct containing tranche ID, claimant, and receiver
     /// @param signature The EIP-712 signature over the claim, produced by `claim.claimant`
     /// @param proof     The Merkle proof demonstrating inclusion of the claimant in the tranche
-    function mint(
-        Claim calldata claim,
-        bytes calldata signature,
-        bytes32[] calldata proof
-    ) external {
+    function mint(Claim calldata claim, bytes calldata signature, bytes32[] calldata proof) external {
         require(claim.trancheId < trancheId, InvalidTrancheId());
-        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
-            CLAIM_TYPEHASH,
-            claim.trancheId,
-            claim.claimant,
-            claim.receiver
-        )));
+        bytes32 digest =
+            _hashTypedDataV4(keccak256(abi.encode(CLAIM_TYPEHASH, claim.trancheId, claim.claimant, claim.receiver)));
         address signer = ECDSA.recoverCalldata(digest, signature);
         require(signer == claim.claimant, InvalidSignature());
         bytes32 leaf = keccak256(abi.encodePacked(claim.trancheId, claim.claimant));

@@ -74,15 +74,13 @@ contract MerkleDropSBTTest is Test {
         drop.addRoot(root1);
 
         // Mint from tranche 0
-        MerkleDropSBT.Claim memory claim0 =
-            MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: receiver});
+        MerkleDropSBT.Claim memory claim0 = MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: receiver});
         drop.mint(claim0, _signClaim(claim0), new bytes32[](0));
         assertEq(drop.ownerOf(0), receiver);
         assertEq(drop.tokenURI(0), "https://sbt.monad.xyz/0/0");
 
         // Mint from tranche 1
-        MerkleDropSBT.Claim memory claim1 =
-            MerkleDropSBT.Claim({trancheId: 1, claimant: claimant2, receiver: other});
+        MerkleDropSBT.Claim memory claim1 = MerkleDropSBT.Claim({trancheId: 1, claimant: claimant2, receiver: other});
         drop.mint(claim1, _signWithKey(claim1, claimant2PrivateKey), new bytes32[](0));
         assertEq(drop.ownerOf(1), other);
         assertEq(drop.tokenURI(1), "https://sbt.monad.xyz/1/1");
@@ -93,12 +91,10 @@ contract MerkleDropSBTTest is Test {
         bytes32 root1 = _leaf(1, claimant);
         drop.addRoot(root1);
 
-        MerkleDropSBT.Claim memory claim0 =
-            MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: receiver});
+        MerkleDropSBT.Claim memory claim0 = MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: receiver});
         drop.mint(claim0, _signClaim(claim0), new bytes32[](0));
 
-        MerkleDropSBT.Claim memory claim1 =
-            MerkleDropSBT.Claim({trancheId: 1, claimant: claimant, receiver: receiver});
+        MerkleDropSBT.Claim memory claim1 = MerkleDropSBT.Claim({trancheId: 1, claimant: claimant, receiver: receiver});
         drop.mint(claim1, _signClaim(claim1), new bytes32[](0));
 
         assertEq(drop.ownerOf(0), receiver);
@@ -119,16 +115,14 @@ contract MerkleDropSBTTest is Test {
         drop.addRoot(root); // tranche 2
 
         // Claimant A mints with leafB as proof sibling
-        MerkleDropSBT.Claim memory claimA =
-            MerkleDropSBT.Claim({trancheId: 2, claimant: claimant, receiver: receiver});
+        MerkleDropSBT.Claim memory claimA = MerkleDropSBT.Claim({trancheId: 2, claimant: claimant, receiver: receiver});
         bytes32[] memory proofA = new bytes32[](1);
         proofA[0] = leafB;
         drop.mint(claimA, _signClaim(claimA), proofA);
         assertEq(drop.ownerOf(drop.tokenId() - 1), receiver);
 
         // Claimant B mints with leafA as proof sibling
-        MerkleDropSBT.Claim memory claimB =
-            MerkleDropSBT.Claim({trancheId: 2, claimant: claimant2, receiver: other});
+        MerkleDropSBT.Claim memory claimB = MerkleDropSBT.Claim({trancheId: 2, claimant: claimant2, receiver: other});
         bytes32[] memory proofB = new bytes32[](1);
         proofB[0] = leafA;
         drop.mint(claimB, _signWithKey(claimB, claimant2PrivateKey), proofB);
@@ -207,8 +201,7 @@ contract MerkleDropSBTTest is Test {
     // -----------------------------------------------------------------------
 
     function test_RevertIf_InvalidTrancheId() public {
-        MerkleDropSBT.Claim memory claim =
-            MerkleDropSBT.Claim({trancheId: 999, claimant: claimant, receiver: receiver});
+        MerkleDropSBT.Claim memory claim = MerkleDropSBT.Claim({trancheId: 999, claimant: claimant, receiver: receiver});
         bytes memory signature = _signClaim(claim);
         vm.expectRevert(MerkleDropSBT.InvalidTrancheId.selector);
         drop.mint(claim, signature, new bytes32[](0));
@@ -247,8 +240,7 @@ contract MerkleDropSBTTest is Test {
         bytes32 root1 = _leaf(1, claimant);
         drop.addRoot(root1);
 
-        MerkleDropSBT.Claim memory claim =
-            MerkleDropSBT.Claim({trancheId: 1, claimant: claimant, receiver: address(0)});
+        MerkleDropSBT.Claim memory claim = MerkleDropSBT.Claim({trancheId: 1, claimant: claimant, receiver: address(0)});
         bytes memory signature = _signClaim(claim);
 
         vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721InvalidReceiver.selector, address(0)));
@@ -272,8 +264,7 @@ contract MerkleDropSBTTest is Test {
         bytes memory signature = _signClaim(claim);
 
         // Tamper with the receiver
-        MerkleDropSBT.Claim memory tampered =
-            MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: other});
+        MerkleDropSBT.Claim memory tampered = MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: other});
 
         vm.expectRevert(MerkleDropSBT.InvalidSignature.selector);
         drop.mint(tampered, signature, new bytes32[](0));
@@ -392,8 +383,6 @@ contract MerkleDropSBTTest is Test {
 
     /// @dev Mirrors OpenZeppelin's Hashes.commutativeKeccak256 — sorts before hashing.
     function _hashPair(bytes32 a, bytes32 b) internal pure returns (bytes32) {
-        return a < b
-            ? keccak256(abi.encodePacked(a, b))
-            : keccak256(abi.encodePacked(b, a));
+        return a < b ? keccak256(abi.encodePacked(a, b)) : keccak256(abi.encodePacked(b, a));
     }
 }
