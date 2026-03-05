@@ -59,7 +59,7 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Constructor for the SBT contract
     /// @param _owner The initial owner address
-    constructor(address _owner) Ownable(_owner) ERC721("Monad Cards", "CARDS") EIP712("MerkleDropSBT", "1") {}
+    constructor(address _owner) Ownable(_owner) ERC721("Monad Cards", "CARDS") EIP712("Monad Cards", "1") {}
 
     /// @notice Adds a new Merkle root for a distribution tranche
     /// @dev Increments {trancheId} after assignment, so tranche IDs are sequential starting from 0
