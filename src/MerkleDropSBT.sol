@@ -31,8 +31,8 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     /// @notice Maps a tranche ID to its Merkle root
     mapping(uint256 => bytes32) public merkleRoots;
 
-    /// @notice Tracks whether a given leaf (derived from trancheId + claimant) has already been claimed
-    mapping(bytes32 => bool) public isClaimed;
+    /// @notice Tracks whether a given claimant has already claimed
+    mapping(address => bool) public isClaimed;
 
     /// @dev EIP-712 typehash for the {Claim} struct, used when computing the digest to sign
     bytes32 private constant CLAIM_TYPEHASH = keccak256("Claim(uint256 trancheId,address claimant,address receiver)");
@@ -88,9 +88,9 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
         require(signer == claim.claimant, InvalidSignature());
         bytes32 leaf = keccak256(abi.encodePacked(claim.trancheId, claim.claimant));
         require(MerkleProof.verifyCalldata(proof, merkleRoots[claim.trancheId], leaf), InvalidProof());
-        require(!isClaimed[leaf], AlreadyClaimed());
+        require(!isClaimed[claim.claimant], AlreadyClaimed());
         uint256 currentTokenId = tokenId;
-        isClaimed[leaf] = true;
+        isClaimed[claim.claimant] = true;
         unchecked {
             ++tokenId;
         }
