@@ -20,9 +20,13 @@ contract BadReceiver {}
 contract TestMerkleDropSBT is MerkleDropSBT {
     string private _testBaseURI;
 
-    constructor(address owner_, string memory name_, string memory version_, string memory symbol_, string memory baseURI_)
-        MerkleDropSBT(owner_, name_, version_, symbol_)
-    {
+    constructor(
+        address owner_,
+        string memory name_,
+        string memory version_,
+        string memory symbol_,
+        string memory baseURI_
+    ) MerkleDropSBT(owner_, name_, version_, symbol_) {
         _testBaseURI = baseURI_;
     }
 
