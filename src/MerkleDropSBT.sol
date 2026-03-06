@@ -7,6 +7,7 @@ import {EIP712} from "openzeppelin-contracts/contracts/utils/cryptography/EIP712
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import {MerkleProof} from "openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import {ShortStrings, ShortString} from "openzeppelin-contracts/contracts/utils/ShortStrings.sol";
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
 /// @title MerkleDropSBT
@@ -14,7 +15,7 @@ import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Own
 /// @notice A soulbound ERC-721 token distributed via Merkle tree allowlists
 contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     using Strings for uint256;
-
+    using ShortStrings for *;
     /// @notice EIP-712 typed data for a mint claim
     struct Claim {
         uint256 trancheId;
@@ -27,6 +28,9 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice The next token ID that will be minted
     uint256 public tokenId;
+
+    /// @notice The base URI for all token metadata
+    ShortString public immutable baseURI;
 
     /// @notice Maps a tranche ID to its Merkle root
     mapping(uint256 => bytes32) public merkleRoots;
@@ -59,7 +63,9 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Constructor for the SBT contract
     /// @param _owner The initial owner address
-    constructor(address _owner) Ownable(_owner) ERC721("Monad Cards", "CARDS") EIP712("Monad Cards", "1") {}
+    constructor(address _owner, string memory newBaseURI) Ownable(_owner) ERC721("Monad Cards", "CARDS") EIP712("Monad Cards", "1") {
+        baseURI = newBaseURI.toShortString();
+    }
 
     /// @notice Adds a new Merkle root for a distribution tranche
     /// @dev Increments {trancheId} after assignment, so tranche IDs are sequential starting from 0
@@ -129,7 +135,7 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Returns the base URI prepended to every token URI
     /// @return The base URI string
-    function _baseURI() internal pure override returns (string memory) {
-        return "https://sbt.monad.xyz/";
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI.toString();
     }
 }

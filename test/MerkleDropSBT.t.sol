@@ -32,7 +32,7 @@ contract MerkleDropSBTTest is Test {
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     function setUp() public {
-        drop = new MerkleDropSBT(address(this));
+        drop = new MerkleDropSBT(address(this), "https://example.com/");
 
         claimantPrivateKey = 0xA11CE;
         claimant = vm.addr(claimantPrivateKey);
@@ -59,9 +59,9 @@ contract MerkleDropSBTTest is Test {
         drop.mint(claim, signature, proof);
 
         assertEq(drop.ownerOf(0), receiver);
-        assertEq(drop.tokenURI(0), "https://sbt.monad.xyz/0/0");
+        assertEq(drop.tokenURI(0), "https://example.com/0/0");
         assertEq(drop.tokenId(), 1);
-        assertTrue(drop.isClaimed(_leaf(0, claimant)));
+        assertTrue(drop.isClaimed(claimant));
     }
 
     // -----------------------------------------------------------------------
@@ -77,16 +77,16 @@ contract MerkleDropSBTTest is Test {
         MerkleDropSBT.Claim memory claim0 = MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: receiver});
         drop.mint(claim0, _signClaim(claim0), new bytes32[](0));
         assertEq(drop.ownerOf(0), receiver);
-        assertEq(drop.tokenURI(0), "https://sbt.monad.xyz/0/0");
+        assertEq(drop.tokenURI(0), "https://example.com/0/0");
 
         // Mint from tranche 1
         MerkleDropSBT.Claim memory claim1 = MerkleDropSBT.Claim({trancheId: 1, claimant: claimant2, receiver: other});
         drop.mint(claim1, _signWithKey(claim1, claimant2PrivateKey), new bytes32[](0));
         assertEq(drop.ownerOf(1), other);
-        assertEq(drop.tokenURI(1), "https://sbt.monad.xyz/1/1");
+        assertEq(drop.tokenURI(1), "https://example.com/1/1");
     }
 
-    function test_SameClaimantDifferentTranches() public {
+    function test_RevertIf_SameClaimantDifferentTranches() public {
         // Claimant is in tranche 0 and tranche 1
         bytes32 root1 = _leaf(1, claimant);
         drop.addRoot(root1);
@@ -94,11 +94,10 @@ contract MerkleDropSBTTest is Test {
         MerkleDropSBT.Claim memory claim0 = MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: receiver});
         drop.mint(claim0, _signClaim(claim0), new bytes32[](0));
 
+        // Same claimant cannot claim again even in a different tranche (per-address claim tracking)
         MerkleDropSBT.Claim memory claim1 = MerkleDropSBT.Claim({trancheId: 1, claimant: claimant, receiver: receiver});
+        vm.expectRevert(MerkleDropSBT.AlreadyClaimed.selector);
         drop.mint(claim1, _signClaim(claim1), new bytes32[](0));
-
-        assertEq(drop.ownerOf(0), receiver);
-        assertEq(drop.ownerOf(1), receiver);
     }
 
     // -----------------------------------------------------------------------
@@ -167,8 +166,8 @@ contract MerkleDropSBTTest is Test {
         vm.prank(receiver);
         drop.burn(0);
 
-        // The claim leaf remains used — cannot re-mint
-        assertTrue(drop.isClaimed(_leaf(0, claimant)));
+        // The claim remains used — cannot re-mint
+        assertTrue(drop.isClaimed(claimant));
         vm.expectRevert(MerkleDropSBT.AlreadyClaimed.selector);
         drop.mint(claim, signature, new bytes32[](0));
     }
@@ -369,7 +368,7 @@ contract MerkleDropSBTTest is Test {
         return keccak256(
             abi.encode(
                 EIP712_DOMAIN_TYPEHASH,
-                keccak256(bytes("MerkleDropSBT")),
+                keccak256(bytes("Monad Cards")),
                 keccak256(bytes("1")),
                 block.chainid,
                 address(drop)
