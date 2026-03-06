@@ -17,6 +17,20 @@ contract GoodReceiver is IERC721Receiver {
 /// @dev A contract receiver that does NOT implement IERC721Receiver (reverts).
 contract BadReceiver {}
 
+contract TestMerkleDropSBT is MerkleDropSBT {
+    string private _testBaseURI;
+
+    constructor(address owner_, string memory name_, string memory version_, string memory symbol_, string memory baseURI_)
+        MerkleDropSBT(owner_, name_, version_, symbol_)
+    {
+        _testBaseURI = baseURI_;
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _testBaseURI;
+    }
+}
+
 contract MerkleDropSBTTest is Test {
     MerkleDropSBT internal drop;
 
@@ -30,9 +44,10 @@ contract MerkleDropSBTTest is Test {
     bytes32 internal constant CLAIM_TYPEHASH = keccak256("Claim(uint256 trancheId,address claimant,address receiver)");
     bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    string internal constant BASE_URI = "https://example.com/";
 
     function setUp() public {
-        drop = new MerkleDropSBT(address(this), "Monad Cards", "1", "CARDS", "https://example.com/");
+        drop = new TestMerkleDropSBT(address(this), "Monad Cards", "1", "CARDS", BASE_URI);
 
         claimantPrivateKey = 0xA11CE;
         claimant = vm.addr(claimantPrivateKey);
@@ -59,7 +74,7 @@ contract MerkleDropSBTTest is Test {
         drop.mint(claim, signature, proof);
 
         assertEq(drop.ownerOf(0), receiver);
-        assertEq(drop.tokenURI(0), "https://example.com/0/0");
+        assertEq(drop.tokenURI(0), "https://example.com/0");
         assertEq(drop.tokenId(), 1);
         assertTrue(drop.isClaimed(claimant));
     }
@@ -77,13 +92,13 @@ contract MerkleDropSBTTest is Test {
         MerkleDropSBT.Claim memory claim0 = MerkleDropSBT.Claim({trancheId: 0, claimant: claimant, receiver: receiver});
         drop.mint(claim0, _signClaim(claim0), new bytes32[](0));
         assertEq(drop.ownerOf(0), receiver);
-        assertEq(drop.tokenURI(0), "https://example.com/0/0");
+        assertEq(drop.tokenURI(0), "https://example.com/0");
 
         // Mint from tranche 1
         MerkleDropSBT.Claim memory claim1 = MerkleDropSBT.Claim({trancheId: 1, claimant: claimant2, receiver: other});
         drop.mint(claim1, _signWithKey(claim1, claimant2PrivateKey), new bytes32[](0));
         assertEq(drop.ownerOf(1), other);
-        assertEq(drop.tokenURI(1), "https://example.com/1/1");
+        assertEq(drop.tokenURI(1), "https://example.com/1");
     }
 
     function test_RevertIf_SameClaimantDifferentTranches() public {

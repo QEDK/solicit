@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.26;
 
-import {ERC721URIStorage, ERC721} from "openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import {ERC721} from "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import {EIP712} from "openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import {MerkleProof} from "openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
-import {ShortStrings, ShortString} from "openzeppelin-contracts/contracts/utils/ShortStrings.sol";
 import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
 /// @title MerkleDropSBT
 /// @author QEDK (@qedk)
 /// @notice A soulbound ERC-721 token distributed via Merkle tree allowlists
-contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
+abstract contract MerkleDropSBT is ERC721, EIP712, Ownable2Step {
     using Strings for uint256;
-    using ShortStrings for *;
 
     /// @notice EIP-712 typed data for a mint claim
     struct Claim {
@@ -35,9 +33,6 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Tracks whether a given claimant has already claimed
     mapping(address => bool) public isClaimed;
-
-    /// @notice The base URI for all token metadata
-    ShortString private immutable baseURI;
 
     /// @dev EIP-712 typehash for the {Claim} struct, used when computing the digest to sign
     bytes32 private constant CLAIM_TYPEHASH = keccak256("Claim(uint256 trancheId,address claimant,address receiver)");
@@ -64,13 +59,11 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Constructor for the SBT contract
     /// @param _owner The initial owner address
-    constructor(address _owner, string memory name, string memory version, string memory symbol, string memory newBaseURI)
+    constructor(address _owner, string memory name, string memory version, string memory symbol)
         Ownable(_owner)
         ERC721(name, symbol)
         EIP712(name, version)
-    {
-        baseURI = newBaseURI.toShortString();
-    }
+    {}
 
     /// @notice Adds a new Merkle root for a distribution tranche
     /// @dev Increments {trancheId} after assignment, so tranche IDs are sequential starting from 0
@@ -106,7 +99,6 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
             ++tokenId;
         }
         _safeMint(claim.receiver, currentTokenId);
-        _setTokenURI(currentTokenId, string.concat(claim.trancheId.toString(), "/", currentTokenId.toString()));
     }
 
     /// @notice Burns a soulbound token that the caller owns
@@ -114,16 +106,15 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     function burn(uint256 id) public virtual {
         require(msg.sender == ownerOf(id), OnlyTokenOwner());
         _burn(id);
-        _setTokenURI(id, "");
     }
 
     /// @notice Always reverts since soulbound tokens cannot be approved
-    function approve(address, uint256) public virtual override(ERC721, IERC721) {
+    function approve(address, uint256) public virtual override(ERC721) {
         revert CannotApproveSoulboundToken();
     }
 
     /// @notice Always reverts since soulbound tokens cannot have operator approvals
-    function setApprovalForAll(address, bool) public virtual override(ERC721, IERC721) {
+    function setApprovalForAll(address, bool) public virtual override(ERC721) {
         revert CannotApproveSoulboundToken();
     }
 
@@ -136,11 +127,5 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
         }
 
         return super._update(to, tokenId_, auth);
-    }
-
-    /// @notice Returns the base URI prepended to every token URI
-    /// @return The base URI string
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI.toString();
     }
 }
