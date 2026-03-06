@@ -32,7 +32,7 @@ contract MerkleDropSBTTest is Test {
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     function setUp() public {
-        drop = new MerkleDropSBT(address(this), "https://example.com/");
+        drop = new MerkleDropSBT(address(this), "Monad Cards", "1", "CARDS", "https://example.com/");
 
         claimantPrivateKey = 0xA11CE;
         claimant = vm.addr(claimantPrivateKey);

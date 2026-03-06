@@ -30,14 +30,14 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     /// @notice The next token ID that will be minted
     uint256 public tokenId;
 
-    /// @notice The base URI for all token metadata
-    ShortString public immutable baseURI;
-
     /// @notice Maps a tranche ID to its Merkle root
     mapping(uint256 => bytes32) public merkleRoots;
 
     /// @notice Tracks whether a given claimant has already claimed
     mapping(address => bool) public isClaimed;
+
+    /// @notice The base URI for all token metadata
+    ShortString private immutable baseURI;
 
     /// @dev EIP-712 typehash for the {Claim} struct, used when computing the digest to sign
     bytes32 private constant CLAIM_TYPEHASH = keccak256("Claim(uint256 trancheId,address claimant,address receiver)");
@@ -64,10 +64,10 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Constructor for the SBT contract
     /// @param _owner The initial owner address
-    constructor(address _owner, string memory newBaseURI)
+    constructor(address _owner, string memory name, string memory version, string memory symbol, string memory newBaseURI)
         Ownable(_owner)
-        ERC721("Monad Cards", "CARDS")
-        EIP712("Monad Cards", "1")
+        ERC721(name, symbol)
+        EIP712(name, version)
     {
         baseURI = newBaseURI.toShortString();
     }
@@ -75,7 +75,7 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     /// @notice Adds a new Merkle root for a distribution tranche
     /// @dev Increments {trancheId} after assignment, so tranche IDs are sequential starting from 0
     /// @param newRoot The Merkle root of the allowlist. Must not be `bytes32(0)`
-    function addRoot(bytes32 newRoot) external onlyOwner {
+    function addRoot(bytes32 newRoot) public virtual onlyOwner {
         require(newRoot != bytes32(0), RootCannotBeZero());
         uint256 currentTrancheId = trancheId;
         merkleRoots[currentTrancheId] = newRoot;
@@ -91,7 +91,8 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     /// @param claim     The claim struct containing tranche ID, claimant, and receiver
     /// @param signature The EIP-712 signature over the claim, produced by `claim.claimant`
     /// @param proof     The Merkle proof demonstrating inclusion of the claimant in the tranche
-    function mint(Claim calldata claim, bytes calldata signature, bytes32[] calldata proof) external {
+    function mint(Claim calldata claim, bytes calldata signature, bytes32[] calldata proof) public virtual {
+        require(!isClaimed[claim.claimant], AlreadyClaimed());
         require(claim.trancheId < trancheId, InvalidTrancheId());
         bytes32 digest =
             _hashTypedDataV4(keccak256(abi.encode(CLAIM_TYPEHASH, claim.trancheId, claim.claimant, claim.receiver)));
@@ -99,7 +100,6 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
         require(signer == claim.claimant, InvalidSignature());
         bytes32 leaf = keccak256(abi.encodePacked(claim.trancheId, claim.claimant));
         require(MerkleProof.verifyCalldata(proof, merkleRoots[claim.trancheId], leaf), InvalidProof());
-        require(!isClaimed[claim.claimant], AlreadyClaimed());
         uint256 currentTokenId = tokenId;
         isClaimed[claim.claimant] = true;
         unchecked {
@@ -111,7 +111,7 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Burns a soulbound token that the caller owns
     /// @param id The token ID to burn
-    function burn(uint256 id) external {
+    function burn(uint256 id) public virtual {
         require(msg.sender == ownerOf(id), OnlyTokenOwner());
         _burn(id);
         _setTokenURI(id, "");
