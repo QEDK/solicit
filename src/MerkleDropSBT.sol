@@ -16,6 +16,7 @@ import {Ownable2Step, Ownable} from "openzeppelin-contracts/contracts/access/Own
 contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
     using Strings for uint256;
     using ShortStrings for *;
+
     /// @notice EIP-712 typed data for a mint claim
     struct Claim {
         uint256 trancheId;
@@ -63,7 +64,11 @@ contract MerkleDropSBT is ERC721URIStorage, EIP712, Ownable2Step {
 
     /// @notice Constructor for the SBT contract
     /// @param _owner The initial owner address
-    constructor(address _owner, string memory newBaseURI) Ownable(_owner) ERC721("Monad Cards", "CARDS") EIP712("Monad Cards", "1") {
+    constructor(address _owner, string memory newBaseURI)
+        Ownable(_owner)
+        ERC721("Monad Cards", "CARDS")
+        EIP712("Monad Cards", "1")
+    {
         baseURI = newBaseURI.toShortString();
     }
 
